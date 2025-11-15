@@ -25,8 +25,8 @@ from fairseq.modules import (
 )
 from fairseq.modules.transformer_sentence_encoder import init_bert_params
 
-from pretrain_tsvad.models.wavlm_extraction.modules import GLU_Linear, MultiheadAttention
-from pretrain_tsvad.modules import CondLayerNorm
+from SA_WavLM.models.modules import GLU_Linear, MultiheadAttention
+from SA_WavLM.modules import CondLayerNorm
 
 def manual_layer_norm(x, layer_weight, layer_bias, layer_eps):
     mean = x.mean(-1, keepdim=True)

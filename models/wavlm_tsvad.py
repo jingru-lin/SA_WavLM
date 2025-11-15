@@ -1,4 +1,4 @@
-# --------------------------------------------------------
+#pretrain_tsvae --------------------------------------------------------
 # WavLM: Large-Scale Self-Supervised  Pre-training  for Full Stack Speech Processing (https://arxiv.org/abs/2110.13900.pdf)
 # Github source: https://github.com/microsoft/unilm/tree/master/wavlm
 # Copyright (c) 2021 Microsoft
@@ -33,7 +33,7 @@ from fairseq.tasks.hubert_pretraining import (
     HubertPretrainingTask,
 )
 
-from pretrain_tsvad.models.wavlm_extraction.wavlm_encoder import (
+from SA_WavLM.models.wavlm_encoder import (
     ConvFeatureExtractionModel, TransformerEncoder, TransformerSentenceEncoderLayer
 )
 
@@ -515,8 +515,8 @@ class WavLMTSVAD(BaseFairseqModel):
         self,
         source: torch.Tensor,
         spk_emb: List[torch.Tensor],
-        spk_emb_mask: List[bool],
-        spk_order: torch.Tensor = None,
+        # spk_emb_mask: List[bool],
+        # spk_order: torch.Tensor = None,
         target_list: Optional[List[torch.Tensor]] = None,
         padding_mask: Optional[torch.Tensor] = None,
         mask: bool = True,
@@ -531,8 +531,8 @@ class WavLMTSVAD(BaseFairseqModel):
             features=features,
             features_pen=features_pen,
             spk_emb=spk_emb,
-            spk_emb_mask=spk_emb_mask,
-            spk_order=spk_order,
+            # spk_emb_mask=spk_emb_mask,
+            # spk_order=spk_order,
             target_list=target_list,
             padding_mask=padding_mask,
             mask=mask,
@@ -599,10 +599,8 @@ class WavLMTSVAD(BaseFairseqModel):
             layer=None if output_layer is None else output_layer - 1,
         )
         if features_only:
-            raise NotImplementedError
+            return x
 
-        # calculate contrastive losses
-        # spk_order = torch.cat([spk_order[:, :1], spk_order[:, 1:]]).squeeze(1)
         ctr_loss = None
 
         def compute_pred(proj_x, target, label_embs):
@@ -638,8 +636,6 @@ class WavLMTSVAD(BaseFairseqModel):
             logit_m_list_before_merge = None
 
 
-        # if not self.skip_nomask: Skip this for now as this is only for recording metrics, not added to the loss
-
         if self.spk_merge_layers is not None:
             for layer in self.spk_merge_layers:
                 if isinstance(layer, nn.Linear):
@@ -650,19 +646,6 @@ class WavLMTSVAD(BaseFairseqModel):
                 else:
                     raise ValueError("Condition not defined.")
             x = x.transpose(0, 1)
-        # else:
-        #     split_idx = x.shape[-1] // 2
-        #     x = torch.cat([x[:, :, :split_idx], x[:, :, split_idx:]], dim=0)
-        #     # x = x.transpose(0, 1).reshape(-1, x.shape[0] * 2, split_idx).transpose(0, 1)
-        #     x_linear = self.linear_block(x[spk_order == 1])
-        #     if self.ctr_layer == -1:
-        #         ctr_loss = self.barlow_twin_loss(x_linear, x_linear)
-        #     else:
-        #         raise NotImplementedError
-
-        # repeat for loss calculation
-        # mask_indices = mask_indices.repeat(2, 1)
-        # padding_mask = padding_mask.repeat(2, 1)
 
         label_embs_list = self.label_embs_concat.split(self.num_classes, 0)
 
@@ -679,10 +662,6 @@ class WavLMTSVAD(BaseFairseqModel):
                 proj_x_m_list = proj_x_m.chunk(len(target_list), dim=-1)
             else:
                 proj_x_m_list = [proj_x_m for _ in range(len(target_list))]
-            # logit_m_list = [
-            #     compute_pred(proj_x_m, t[masked_indices], label_embs_list[i])
-            #     for i, (proj_x_m, t) in enumerate(zip(proj_x_m_list, target_list))
-            # ]
             logit_m_list = [
                 compute_pred(proj_x_m, t[mask_indices.repeat(2, 1)], label_embs_list[i])
                 for i, (proj_x_m, t) in enumerate(zip(proj_x_m_list, target_list))
@@ -703,10 +682,6 @@ class WavLMTSVAD(BaseFairseqModel):
                 proj_x_u_list = proj_x_u.chunk(len(target_list), dim=-1)
             else:
                 proj_x_u_list = [proj_x_u for _ in range(len(target_list))]
-            # logit_u_list = [
-            #     compute_pred(proj_x_u, t[nomask_indices], label_embs_list[i])
-            #     for i, (proj_x_u, t) in enumerate(zip(proj_x_u_list, target_list))
-            # ]
             logit_u_list = [
                 compute_pred(proj_x_u, t[nomask_indices.repeat(2, 1)], label_embs_list[i])
                 for i, (proj_x_u, t) in enumerate(zip(proj_x_u_list, target_list))
@@ -724,29 +699,6 @@ class WavLMTSVAD(BaseFairseqModel):
             "ctr_loss": ctr_loss
         }
         return result
-
-    def extract_features(
-        self,
-        source: torch.Tensor,
-        padding_mask: Optional[torch.Tensor] = None,
-        mask: bool = False,
-        ret_conv: bool = False,
-        output_layer: Optional[int] = None,
-        ret_layer_results: bool = False,
-    ):
-        raise NotImplementedError
-        # res = self.forward(
-        #     source,
-        #     padding_mask=padding_mask,
-        #     mask=mask,
-        #     features_only=True,
-        #     output_layer=output_layer,
-        # )
-        #
-        # feature = res["features"] if ret_conv else res["x"]
-        # if ret_layer_results:
-        #     feature = (feature, res["layer_results"])
-        # return feature, res["padding_mask"]
 
     def get_logits(self, net_output, is_masked=True):
         if is_masked:

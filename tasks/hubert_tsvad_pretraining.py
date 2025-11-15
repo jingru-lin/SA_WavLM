@@ -18,8 +18,8 @@ from fairseq.tasks import register_task
 from fairseq.tasks.fairseq_task import FairseqTask
 from omegaconf import MISSING
 
-from pretrain_tsvad.data.hubert_tsvad_dataset import HubertTSVADDataset
-from pretrain_tsvad.data.dictionary import Dictionary
+from SA_WavLM.data.hubert_tsvad_dataset import HubertTSVADDataset
+from SA_WavLM.data.dictionary import Dictionary
 
 logger = logging.getLogger(__name__)
 
