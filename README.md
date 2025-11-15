@@ -12,4 +12,5 @@ git clone https://github.com/jingru-lin/SA-WavLM
 Follow https://github.com/alibaba-damo-academy/3D-Speaker to extract speaker embeddings Use model_id=iic/speech_campplus_sv_zh-cn_16k-common
 
 # Inference:
+Download model from https://huggingface.co/JR-Lin/SA-WavLM/tree/main \
 Refer to inference.py for extracting representations
